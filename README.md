@@ -1,5 +1,5 @@
 DESCRIPTION
-
+----------------------------------
 
 World of Hello, an engine developed by me available for PC, mobile, and web located at worldofhello.org/, contains the game Hello Classic.
 
@@ -7,10 +7,7 @@ This game is an open source 2D top-down MMO featuring infinitely sized levels, o
 
 ----------------------------------
 
-CLASSIC DEVELOPMENT ENVIRONMENT SETUP
-
-
-TO COPY HELLO CLASSIC
+CLASSIC DEVELOPMENT ENVIRONMENT SETUP - COPY YOUR OWN VERSION
 ----------------------------------
 
 1. Install World of Hello at https://www.worldofhello.org/download.html. The Android, iOS, and Windows versions are all considered development environments (for example, mobile users can also develop).
