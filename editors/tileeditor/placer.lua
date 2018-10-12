@@ -7,7 +7,7 @@ function onCreated()
   rect:setColor(0,0,255,100)
   lastRectPos = nil -- To avoid placing a ton of tiles at the same location
 
-  rectParent = script:getValue("topLayer", "Scripts/world.lua"); rectParent:addElement(rect)
+  rectParent = script:getValue("topLayer", "Scripts/world.lua"); rectParent:addElement(rect); rect:setScaled(rectParent:getScaled())
 
   undoList = { {} }; maxUndos = 30
 
@@ -141,8 +141,8 @@ function onMouseMoved(mID)
     elem = world
 
     local x, y = getAbsolutePosition(elem)
-    x = math.floor((mouse:getX(mID, true) - x)/16)*16
-    y = math.floor((mouse:getY(mID, true) - y)/16)*16
+    x = math.floor((mouse:getX(mID, world:getScaled()) - x)/16)*16
+    y = math.floor((mouse:getY(mID, world:getScaled()) - y)/16)*16
 
     rect:bringToFront(); rect:setRect(x, y, #clipboard*16, #clipboard[1]*16); rect:show()
 

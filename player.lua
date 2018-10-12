@@ -10,7 +10,7 @@ function onCreatedDependents()
 
   self:removeKey("gridPos")
 
-  player = CreateImage("Players/player.png", 0, 0, 32, 32); player:crop(32,0,32,32); player:center(); player:setClipped(false); player:setProperty("isPlayer", "1")
+  player = CreateImage("Players/player.png", 0, 0, 32, 32); player:setScaled(getWorld():getScaled()); player:crop(32,0,32,32); player:center(); player:setClipped(false); player:setProperty("isPlayer", "1")
   getWorld():setPosition(0,0)
   local topLayer = script:getValue("topLayer", "Scripts/world.lua")
   topLayer:addElement(player)

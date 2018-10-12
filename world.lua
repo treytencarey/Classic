@@ -2,12 +2,12 @@ function onCreated()
   script:triggerFunction("onCreated", "Scripts/player.lua") -- Reset player if this script was updated
 
   -- Create parent. Holds part of grid
-  parent = CreateListBox(0,0,0,0)
+  parent = CreateListBox(0,0,0,0); parent:setScaled(false)
   
   grids = {}
   layers = {}
   tiles = {}
-  topLayer = CreateListBox(0,0,0,0); parent:addElement(topLayer) -- Used for displaying above everything, such as clouds or a tile placer
+  topLayer = CreateListBox(0,0,0,0); topLayer:setScaled(parent:getScaled()); parent:addElement(topLayer) -- Used for displaying above everything, such as clouds or a tile placer
   
   gridSq = { w = 7*16, h = 7*16 }
 end
@@ -24,14 +24,14 @@ function checkCreateLists(gridX, gridY, layer)
   -- Create part of grid. Holds layers
   local grid = grids[tostring(gridX)][tostring(gridY)]
   if grid == nil then
-    grid = CreateListBox(gridX*gridSq.w, gridY*gridSq.h, gridSq.w, gridSq.h)
+    grid = CreateListBox(gridX*gridSq.w, gridY*gridSq.h, gridSq.w, gridSq.h); grid:setScaled(parent:getScaled())
     grids[tostring(gridX)][tostring(gridY)] = grid
     parent:addElement(grid)
   end
   
   -- Create layer. Holds tiles
   if layers[tostring(gridX)][tostring(gridY)][tostring(layer)] == nil then
-    local layerLB = CreateListBox(0,0,0,0)
+    local layerLB = CreateListBox(0,0,0,0); layerLB:setScaled(parent:getScaled())
     layers[tostring(gridX)][tostring(gridY)][tostring(layer)] = layerLB
     grid:addElement(layerLB)
     reorderLayers(gridX, gridY)
@@ -72,7 +72,7 @@ function setTile(x, y, layer, img, cropX, cropY)
   if tile ~= nil then 
     tile:setImage(img); tile:crop(cropX, cropY, 16, 16)
   else
-    tile = CreateImage(img, (tileX-1)*16, (tileY-1)*16, 16, 16); tile:setClipped(false)
+    tile = CreateImage(img, (tileX-1)*16, (tileY-1)*16, 16, 16); tile:setClipped(false); tile:setScaled(parent:getScaled())
     tile:crop(cropX,cropY,16,16)
 
     if tiles[tostring(gridX)][tostring(gridY)][tostring(layer)][tostring(tileX)] == nil then tiles[tostring(gridX)][tostring(gridY)][tostring(layer)][tostring(tileX)] = {}; end
@@ -103,7 +103,7 @@ function loadGrid(gridX, gridY)
   
   for x=0, gridSq.w-1, 16 do
     for y=0, gridSq.h-1, 16 do
-      local tile = CreateImage("Tilesets/tileset2.png", x, y, 16, 16); tile:setClipped(false)
+      local tile = CreateImage("Tilesets/tileset2.png", x, y, 16, 16); tile:setClipped(false); tile:setScaled(parent:getScaled())
       tile:crop(0,0,16,16)
       if tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(x/16+1)] == nil then tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(x/16+1)] = {}; end
       tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(x/16+1)][tostring(y/16+1)] = tile
@@ -131,6 +131,14 @@ function removeGrids()
       removeGrid(x, y)
     end
   end
+end
+
+-- Always keep the world centered, if it's not scaled
+function onWindowResize(lX, lY, lW, lH)
+  if parent:getScaled() then return; end
+
+  local w, h = game:getWindowWidth(), game:getWindowHeight()
+  parent:setPosition(parent:getX()+(w-lW)/2, parent:getY()+(h-lH)/2)
 end
 
 function main()
