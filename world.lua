@@ -9,7 +9,7 @@ function onCreated()
   tiles = {}
   topLayer = CreateListBox(0,0,0,0); topLayer:setScaled(parent:getScaled()); parent:addElement(topLayer) -- Used for displaying above everything, such as clouds or a tile placer
   
-  gridSq = { w = 7*16, h = 7*16 }
+  gridSq = { w = 30*16, h = 30*16 }
 end
 
 -- Creates necessary lists if they don't exists
@@ -107,26 +107,34 @@ end
 
 function loadGrid(gridX, gridY)
   checkCreateLists(gridX, gridY, 1)
-  
-  for x=0, gridSq.w-1, 16 do
-    for y=0, gridSq.h-1, 16 do
+  local begX = operations:arraySize(tiles[tostring(gridX)][tostring(gridY)]["1"])
+  local begY = tiles[tostring(gridX)][tostring(gridY)]["1"] and tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(begX)] and operations:arraySize(tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(begX)]) or 0
+  if begY > 0  then begX = begX-1; end
+
+  local time, maxTime= game:getTime(), 150
+  for x=begX*16, gridSq.w-1, 16 do
+    for y=begY*16, gridSq.h-1, 16 do
       local tileX, tileY = math.floor(x/16)+1, math.floor(y/16)+1
       local ID = getTileID(gridX, gridY, tileX, tileY, 1)
       local tile = game:getElementFromID(ID)
       if tile == nil then
-        local tile = CreateImage("Tilesets/tileset2.png", x, y, 16, 16); tile:setID(ID); tile:setProperty("isTile", "1"); tile:setClipped(false); tile:setScaled(parent:getScaled())
+        tile = CreateImage("Tilesets/tileset2.png", x, y, 16, 16); tile:setID(ID); tile:setProperty("isTile", "1"); tile:setClipped(false); tile:setScaled(parent:getScaled())
         tile:crop(0,0,16,16)
-        if tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(x/16+1)] == nil then tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(tileX)] = {}; end
-        tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(tileX)][tostring(tileY)] = tile
         -- Add tile to first layer of grid
         layers[tostring(gridX)][tostring(gridY)]["1"]:addElement(tile)
       else
         layers[tostring(gridX)][tostring(gridY)]["1"]:addElement(tile)
       end
+      if tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(tileX)] == nil then tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(tileX)] = {}; end
+      if tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(tileX)][tostring(tileY)] == nil then tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(tileX)][tostring(tileY)] = {}; end
+      tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(tileX)][tostring(tileY)] = tile
+
+      if game:getTime() > time+maxTime then game:setTimeout(150, "loadGrid," .. tostring(gridX) .. "," .. tostring(gridY)); return; end -- Tiles didn't finish loading within our maxTime. Get ready for next batch
     end
+    begY = 0
   end
-  
   topLayer:bringToFront()
+  print("Loaded grid in " .. tostring(game:getTime()-time) .. " milliseconds")
 end
 
 function removeGrid(gridX, gridY)
@@ -153,6 +161,16 @@ function onWindowResize(lX, lY, lW, lH)
 
   local w, h = game:getWindowWidth(), game:getWindowHeight()
   parent:setPosition(parent:getX()+(w-lW)/2, parent:getY()+(h-lH)/2)
+end
+
+function onTimeout(ID, time)
+  if ID:find("loadGrid") == 1 then
+    local gridInfo = operations:getTokens(ID, ",")
+    local gridX, gridY = gridInfo[1], gridInfo[2]
+    if grids[tostring(gridX)] ~= nil and grids[tostring(gridX)][tostring(gridY)] ~= nil then -- Don't continue loading if the grid was removed
+      loadGrid(gridX, gridY)
+    end
+  end
 end
 
 function onCommand(cmd, cmdStr)

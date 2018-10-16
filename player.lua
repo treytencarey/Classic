@@ -86,10 +86,11 @@ function playerIsMoving()
   return playerMoving["LEFT"] ~= nil or playerMoving["RIGHT"] ~= nil or playerMoving["UP"] ~= nil or playerMoving["DOWN"] ~= nil
 end
 
-function movePlayer()
+function movePlayer(speed)
+  speed = speed or 2
   -- Get our changed X/Y position based on the key pressed
-  local difX = playerMoving["LEFT"] and -1 or playerMoving["RIGHT"] and 1 or 0
-  local difY = playerMoving["UP"] and -1 or playerMoving["DOWN"] and 1 or 0
+  local difX = playerMoving["LEFT"] and speed*(-1) or playerMoving["RIGHT"] and speed or 0
+  local difY = playerMoving["UP"] and speed*(-1) or playerMoving["DOWN"] and speed or 0
 
   --[[
   -- TODO - To move the player instead (rather than the world, e.g. when reaching the end of a level)
@@ -141,9 +142,9 @@ function updateGridPosition()
   local onGrid = getOnGrid()
   if lastOnGrid == nil or onGrid[1] ~= lastOnGrid[1] or onGrid[2] ~= lastOnGrid[2] then
     local newFullOnGrid = {}
-    --[[ Create new 4x4 grid --]]
-    for i=-1, 2 do
-      for n=-1, 2 do
+    --[[ Create new 5x5 grid --]]
+    for i=-2, 2 do
+      for n=-2, 2 do
         table.insert(newFullOnGrid, { onGrid[1]+i, onGrid[2]+n } )
       end
     end
@@ -184,7 +185,7 @@ function updateGridPosition()
   end
 end
 
-function onTimeout(ID)
+function onTimeout(ID, time, realTime)
   if ID == "movePlayer" then
     moveTimeout = nil; movePlayer()
   elseif ID == "animPlayer" then
