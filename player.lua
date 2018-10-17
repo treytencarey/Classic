@@ -11,6 +11,7 @@ function onCreatedDependents()
   self:removeKey("gridPos")
 
   player = CreateImage("Players/player.png", 0, 0, 32, 32); player:setScaled(getWorld():getScaled()); player:crop(32,0,32,32); player:center(); player:setClipped(false); player:setProperty("isPlayer", "1")
+  playerSpeed = 4; maxPlayerSpeed = playerSpeed*3
   getWorld():setPosition(0,0)
   local topLayer = script:getValue("topLayer", "Scripts/world.lua")
   topLayer:addElement(player)
@@ -50,12 +51,16 @@ function onKeyDown(key)
   -- Move the player if we aren't clicked on a button, editbox, etc.
   if game:getFocusedElement() == nil or getAbsoluteParent(game:getFocusedElement()) == getWorld() or getAbsoluteParent(game:getFocusedElement()) == player then
     key = key == "W" and "UP" or key == "S" and "DOWN" or key == "A" and "LEFT" or key == "D" and "RIGHT" or key
+
     if playerMoving[key] == nil and (key == "LEFT" or key == "RIGHT" or key == "UP" or key == "DOWN") then
+      if playerIsMoving() == false then startWalk = true; end -- Start with walking animation
+
       -- Can't move left & right at the same time. Same for up/down.
       playerMoving[key == "LEFT" and "RIGHT" or key == "RIGHT" and "LEFT" or key == "UP" and "DOWN" or "UP"] = nil
       
       playerMoving[key] = true
-      movePlayer()
+      movePlayer(playerSpeed)
+      if startWalk then onTimeout("animPlayer", 0); startWalk = nil; end
     end
   end
 end
@@ -64,14 +69,14 @@ function onKeyUp(key)
   key = key == "W" and "UP" or key == "S" and "DOWN" or key == "A" and "LEFT" or key == "D" and "RIGHT" or key
   if playerMoving[key] ~= nil then
     playerMoving[key] = nil
-    sendPlayer()
+    onTimeout("animPlayer", 0) -- Show that the player is no longer moving
   end
 end
 
 -- Get which grid we're on
 function getOnGrid()
   local gridSq = script:getValue("gridSq", "Scripts/world.lua")
-  return { math.floor(playerPos.x/gridSq.w), math.floor(playerPos.y/gridSq.h) }
+  return { math.floor(playerPos.x/gridSq.w), math.floor(playerPos.y/gridSq.h), gridSq.horiz, gridSq.vert }
 end
 
 -- Send to all clients who have a grid we're standing on
@@ -87,7 +92,8 @@ function playerIsMoving()
 end
 
 function movePlayer(speed)
-  speed = speed or 2
+  if speed > maxPlayerSpeed then speed = maxPlayerSpeed; end -- Max speed due to lag
+  
   -- Get our changed X/Y position based on the key pressed
   local difX = playerMoving["LEFT"] and speed*(-1) or playerMoving["RIGHT"] and speed or 0
   local difY = playerMoving["UP"] and speed*(-1) or playerMoving["DOWN"] and speed or 0
@@ -138,13 +144,14 @@ function printGrid(tbl)
   end
 end
 
-function updateGridPosition()
+function updateGridPosition(doAnyways)
   local onGrid = getOnGrid()
-  if lastOnGrid == nil or onGrid[1] ~= lastOnGrid[1] or onGrid[2] ~= lastOnGrid[2] then
+  
+  if doAnyways == true or lastOnGrid == nil or onGrid[1] ~= lastOnGrid[1] or onGrid[2] ~= lastOnGrid[2] then
     local newFullOnGrid = {}
-    --[[ Create new 5x5 grid --]]
-    for i=-2, 2 do
-      for n=-2, 2 do
+    --[[ Create new grid, determined in the world script by window size --]]
+    for i=math.ceil(onGrid[3]/2)*(-1), math.ceil(onGrid[3]/2) do
+      for n=math.ceil(onGrid[4]/2)*(-1), math.ceil(onGrid[4]/2) do
         table.insert(newFullOnGrid, { onGrid[1]+i, onGrid[2]+n } )
       end
     end
@@ -157,12 +164,14 @@ function updateGridPosition()
     if #remKeys == #fullOnGrid then
       self:removeKey("gridPos")
       script:triggerFunction("removeGrids", "Scripts/world.lua")
+      -- print("Removing all keys")
     end
 
     --  Add keys
     for i,tbl in pairs(addKeys) do
       self:addKey("gridPos", tostring(tbl[1]) .. "," .. tostring(tbl[2]))
       script:triggerFunction("loadGrid", "Scripts/world.lua", tbl[1], tbl[2])
+      -- print("Adding key: " .. tostring(tbl[1]) .. ", " .. tostring(tbl[2]))
     end
 
     -- Read above (removing all keys) for why this isn't in an else-statement.
@@ -170,6 +179,7 @@ function updateGridPosition()
       for i,tbl in pairs(remKeys) do
         self:removeKey("gridPos", tostring(tbl[1]) .. "," .. tostring(tbl[2]))
         script:triggerFunction("removeGrid", "Scripts/world.lua", tbl[1], tbl[2])
+        -- print("Removing key: " .. tostring(tbl[1]) .. ", " .. tostring(tbl[2]))
       end
     end
     --[[
@@ -187,7 +197,7 @@ end
 
 function onTimeout(ID, time, realTime)
   if ID == "movePlayer" then
-    moveTimeout = nil; movePlayer()
+    moveTimeout = nil; movePlayer(realTime/time*playerSpeed)
   elseif ID == "animPlayer" then
     animTimeout = nil
     local pCropX, pCropY = player:getCrop()

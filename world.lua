@@ -9,7 +9,8 @@ function onCreated()
   tiles = {}
   topLayer = CreateListBox(0,0,0,0); topLayer:setScaled(parent:getScaled()); parent:addElement(topLayer) -- Used for displaying above everything, such as clouds or a tile placer
   
-  gridSq = { w = 30*16, h = 30*16 }
+  gridSq = { w = 30*16, h = 30*16, horiz = 0, vert = 0 }
+  onWindowResize()
 end
 
 -- Creates necessary lists if they don't exists
@@ -102,16 +103,16 @@ function reorderLayers(gridX, gridY)
 end
 
 function getTileID(gridX, gridY, tileX, tileY, layer)
-  return "-" .. tostring(gridX) .. "-" .. tostring(gridY) .. "-" .. tostring(tileX) .. "-" .. tostring(tileY) .. "-" .. tostring(layer)
+  return "-" .. tostring(gridX) .. "_" .. tostring(gridY) .. "_" .. tostring(tileX) .. "_" .. tostring(tileY) .. "_" .. tostring(layer)
 end
 
 function loadGrid(gridX, gridY)
   checkCreateLists(gridX, gridY, 1)
   local begX = operations:arraySize(tiles[tostring(gridX)][tostring(gridY)]["1"])
   local begY = tiles[tostring(gridX)][tostring(gridY)]["1"] and tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(begX)] and operations:arraySize(tiles[tostring(gridX)][tostring(gridY)]["1"][tostring(begX)]) or 0
-  if begY > 0  then begX = begX-1; end
+  if begY > 0 then begX = begX-1; end
 
-  local time, maxTime= game:getTime(), 150
+  local time, maxTime= game:getTime(), 50
   for x=begX*16, gridSq.w-1, 16 do
     for y=begY*16, gridSq.h-1, 16 do
       local tileX, tileY = math.floor(x/16)+1, math.floor(y/16)+1
@@ -134,7 +135,6 @@ function loadGrid(gridX, gridY)
     begY = 0
   end
   topLayer:bringToFront()
-  print("Loaded grid in " .. tostring(game:getTime()-time) .. " milliseconds")
 end
 
 function removeGrid(gridX, gridY)
@@ -155,12 +155,18 @@ function removeGrids()
   end
 end
 
--- Always keep the world centered, if it's not scaled
 function onWindowResize(lX, lY, lW, lH)
   if parent:getScaled() then return; end
 
-  local w, h = game:getWindowWidth(), game:getWindowHeight()
-  parent:setPosition(parent:getX()+(w-lW)/2, parent:getY()+(h-lH)/2)
+  -- Always keep the world centered
+  if lX ~= nil then
+    local w, h = game:getWindowWidth(), game:getWindowHeight()
+    parent:setPosition(parent:getX()+(w-lW)/2, parent:getY()+(h-lH)/2)
+  end
+  
+  gridSq.horiz = math.ceil(game:getWindowWidth()/gridSq.w) -- Load enough grids to fill the screen
+  gridSq.vert = math.ceil(game:getWindowHeight()/gridSq.h)
+  script:triggerFunction("updateGridPosition", "Scripts/player.lua", true) -- Reset grids, we now have different grids
 end
 
 function onTimeout(ID, time)
@@ -176,8 +182,8 @@ end
 function onCommand(cmd, cmdStr)
   local elem = server:getObjectFromCommand(cmd)
   if elem ~= nil and elem:getProperty("isTile") == "1" and elem:getParent() == elem then
-    local tileProps = operations:getTokens(elem:getID(), "-")
-    local gridX, gridY, tileX, tileY, layer = tileProps[1], tileProps[2], tileProps[3], tileProps[4], tileProps[5]
+    local tileProps = operations:getTokens(elem:getID():sub(2), "_")
+    local gridX, gridY, tileX, tileY, layer = tileProps[0], tileProps[1], tileProps[2], tileProps[3], tileProps[4]
     checkCreateLists(gridX, gridY, layer)
     layers[tostring(gridX)][tostring(gridY)][tostring(layer)]:addElement(elem)
   end
